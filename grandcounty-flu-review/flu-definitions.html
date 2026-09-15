@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft Future Land Use Categories</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#EDEDEF;
+  --card:#FFFFFF;
+  --ink:#1B1633;
+  --body:#2B2B3D;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page:#141320;
+    --card:#1C1B2A;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#141320; --card:#1C1B2A;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--page);
+  font-family:'Inter','Helvetica Neue',Arial,sans-serif;
+  color:var(--body);
+  line-height:1.55;
+  padding:24px 16px 48px;
+  -webkit-font-smoothing:antialiased;
+}
+.sheet{max-width:1150px;margin:0 auto;background:var(--card);border-radius:10px;overflow:hidden;}
+.header{background:#211547;padding:30px 34px;}
+.header h1{color:#fff;font-size:clamp(22px,3.6vw,34px);font-weight:700;letter-spacing:-.4px;line-height:1.2;}
+.list{padding:8px 0 14px;}
+
+.row{
+  display:flex;
+  align-items:flex-start;
+  padding:20px 24px;
+  margin:3px 10px;
+  border-radius:8px;
+  background:var(--tint);
+  position:relative;
+  transition:transform .18s ease, box-shadow .18s ease;
+  outline:none;
+}
+.row:hover,.row:focus-visible{
+  transform:translateY(-4px);
+  box-shadow:0 12px 28px -8px rgba(var(--rgb),.9), 0 4px 10px -4px rgba(var(--rgb),.65);
+  z-index:2;
+}
+.row:focus-visible{outline:2px solid rgba(var(--rgb),.9);outline-offset:2px;}
+
+.name{flex:0 0 400px;display:flex;align-items:flex-start;gap:13px;padding-right:24px;}
+.dot{
+  width:13px;height:13px;border-radius:50%;flex:0 0 auto;margin-top:6px;
+  background:var(--dot);box-shadow:inset 0 0 0 1px rgba(27,22,51,.28);
+}
+.label{font-size:18px;font-weight:700;color:var(--ink);line-height:1.35;}
+.desc{font-size:16px;color:var(--body);}
+
+@media (max-width:720px){
+  body{padding:14px 10px 32px;}
+  .header{padding:22px 20px;}
+  .row{flex-direction:column;padding:16px 18px;margin:3px 7px;}
+  .name{flex:none;padding-right:0;margin-bottom:6px;}
+  .label{font-size:16px;}
+  .desc{font-size:15px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .row{transition:none;}
+  .row:hover,.row:focus-visible{transform:none;}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="header"><h1>Draft Future Land Use Categories</h1></div>
+  <div class="list">
+  <div class="row" tabindex="0" style="--dot:#7CB342; --tint:#EEF5E6; --rgb:124,179,66">
+    <div class="name"><span class="dot"></span><span class="label">Agriculture &amp; Ranching Lands</span></div>
+    <div class="desc">Protect ranching and agriculture as both economy and community character; keep development very low density.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#1B5E20; --tint:#E4ECE4; --rgb:27,94,32">
+    <div class="name"><span class="dot"></span><span class="label">Open Space &amp; Conservation</span></div>
+    <div class="desc">Public lands, conservation easements, wildlife corridors, and the open buffers that keep towns physically separate.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#F7EFC9; --tint:#FBF6E1; --rgb:247,239,201">
+    <div class="name"><span class="dot"></span><span class="label">Large-Lot Residential</span></div>
+    <div class="desc">Large-lot, two-acre-minimum, single-family parcels that lack (and have no reasonable potential to gain) municipal water/sewer service, functioning as an &ldquo;in-between&rdquo; pattern that preserves distinct communities and rural character.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#E9C979; --tint:#F8EFD7; --rgb:233,201,121">
+    <div class="name"><span class="dot"></span><span class="label">Small-Lot Residential</span></div>
+    <div class="desc">Existing platted subdivisions on individual wells and septic systems, generally under two acres, that predate current standards and lack realistic potential for municipal water and sewer service. Infill on existing lots is anticipated.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#C88A1E; --tint:#F4E8D2; --rgb:200,138,30">
+    <div class="name"><span class="dot"></span><span class="label">Neighborhood Residential</span></div>
+    <div class="desc">Town-adjacent land with existing or planned water and sewer service (or realistic potential for it), supporting moderate-density housing close to services and infrastructure.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#4A6FA5; --tint:#E7ECF3; --rgb:74,111,165">
+    <div class="name"><span class="dot"></span><span class="label">Public, Civic, and Institutional</span></div>
+    <div class="desc">Identifies land in public, quasi-public, or institutional ownership that supports the delivery of government services, education, health care, emergency response, and community gathering.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#C0492B; --tint:#F7E7E3; --rgb:192,73,43">
+    <div class="name"><span class="dot"></span><span class="label">Highway Commercial Corridor</span></div>
+    <div class="desc">Traveler and resident serving retail, dining, and services clustered at key nodes along US 40 and state highways. Designed to meet everyday commercial needs without becoming continuous strip development.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#E08A7A; --tint:#F9EAE7; --rgb:224,138,122">
+    <div class="name"><span class="dot"></span><span class="label">Resort &amp; Accommodations</span></div>
+    <div class="desc">Land dedicated to visitor or tourism uses (hotels, resorts, or retreats) concentrated in appropriate locations to support tourism without spreading into residential neighborhoods.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#A9A3D4; --tint:#EEEDF6; --rgb:169,163,212">
+    <div class="name"><span class="dot"></span><span class="label">Mixed Use Employment / Light Industrial</span></div>
+    <div class="desc">Areas set aside for job-generating uses beyond retail (light industrial, contractor yards, offices, mining), giving the local economy places to diversify.</div>
+  </div>
+  <div class="row" tabindex="0" style="--dot:#1A1A1A; --tint:#EFEFEF; --rgb:26,26,26">
+    <div class="name"><span class="dot"></span><span class="label">Town</span></div>
+    <div class="desc">Not in County jurisdiction.</div>
+  </div>
+  </div>
+</div>
+</body>
+</html>
