@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Each Status Means — Town of Telluride</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111310;
+    --surface:#1a1d18;
+    --ink:#f3f1e8;
+    --muted:#a9b0a4;
+    --line:rgba(255,255,255,0.12);
+    --sage:#1f2a1c;
+    --forest:#257227;
+    --forest-dark:#1a5a1c;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.3);
+    --tow:#ff0000; --tow-ink:#ffd9d9;
+    --ticket:#bbfbfd; --ticket-ink:#0a1f20;
+    --none:#31b700; --none-ink:#0a1f00;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  main{
+    max-width:760px;
+    margin:0 auto;
+    padding: 56px 24px 72px;
+  }
+  .section-label{
+    display:block;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.5rem;
+    margin: 0 0 20px;
+    color:var(--ink);
+  }
+  .cards{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px;
+    display:flex;
+    gap:18px;
+    align-items:flex-start;
+  }
+  .card__bar{
+    width:10px;
+    min-width:10px;
+    align-self:stretch;
+    border-radius:6px;
+    margin-top:2px;
+  }
+  .card__body{ flex:1; }
+  .pill{
+    display:inline-block;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.02rem;
+    letter-spacing:0.01em;
+    padding:5px 14px 6px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  .card p{
+    margin:0;
+    font-size:1.02rem;
+    line-height:1.55;
+    color:var(--ink);
+  }
+
+  .pill--tow{ background:var(--tow); color:var(--tow-ink); }
+  .card--tow .card__bar{ background:var(--tow); }
+  .card--tow{ box-shadow: var(--shadow), 0 0 0 1px rgba(255,0,0,0.15), 0 10px 30px -10px rgba(255,0,0,0.45); }
+  .card--tow:hover{ box-shadow: var(--shadow), 0 0 0 1px rgba(255,0,0,0.25), 0 16px 38px -10px rgba(255,0,0,0.65); }
+
+  .pill--ticket{ background:var(--ticket); color:var(--ticket-ink); }
+  .card--ticket .card__bar{ background:var(--ticket); }
+  .card--ticket{ box-shadow: var(--shadow), 0 0 0 1px rgba(50,200,205,0.2), 0 10px 30px -10px rgba(50,200,205,0.55); }
+  .card--ticket:hover{ box-shadow: var(--shadow), 0 0 0 1px rgba(50,200,205,0.3), 0 16px 38px -10px rgba(50,200,205,0.75); }
+
+  .pill--none{ background:var(--none); color:var(--none-ink); }
+  .card--none .card__bar{ background:var(--none); }
+  .card--none{ box-shadow: var(--shadow), 0 0 0 1px rgba(49,183,0,0.18), 0 10px 30px -10px rgba(49,183,0,0.5); }
+  .card--none:hover{ box-shadow: var(--shadow), 0 0 0 1px rgba(49,183,0,0.28), 0 16px 38px -10px rgba(49,183,0,0.7); }
+
+  .card{ transition: box-shadow 0.2s ease, transform 0.2s ease; }
+  .card:hover{ transform:translateY(-2px); }
+
+  .note{
+    margin-top:18px;
+    padding:16px 20px;
+    background:var(--sage);
+    border-radius:12px;
+    font-size:0.96rem;
+    line-height:1.6;
+    color:var(--ink);
+  }
+  .note strong{ font-family:'Big Shoulders Display',Arial,sans-serif; font-weight:800; }
+
+  .cta-wrap{
+    margin:44px 0 8px;
+    text-align:center;
+  }
+  .cta{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    background:var(--forest);
+    color:#ffffff;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.15rem;
+    letter-spacing:0.01em;
+    padding:16px 30px;
+    border-radius:12px;
+    text-decoration:none;
+    box-shadow: 0 14px 28px -12px rgba(37,114,39,0.55);
+    transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .cta:hover{
+    background:var(--forest-dark);
+    transform:translateY(-2px);
+    box-shadow: 0 18px 32px -12px rgba(37,114,39,0.65);
+  }
+  .cta:focus-visible{
+    outline:3px solid var(--forest);
+    outline-offset:3px;
+  }
+  .cta svg{ width:18px; height:18px; flex-shrink:0; }
+  .cta-sub{
+    margin-top:12px;
+    font-size:0.88rem;
+    color:var(--muted);
+  }
+
+  .notify{
+    margin-top:56px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .notify__item{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .notify__code{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:1.3rem;
+    color:#7fd482;
+    margin:0 0 4px;
+  }
+  .notify__desc{
+    margin:0;
+    font-size:0.92rem;
+    color:var(--muted);
+    line-height:1.45;
+  }
+
+  @media (max-width:600px){
+    .notify{ grid-template-columns:1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cta{ transition:none; }
+    .card{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <span class="section-label">What each status means</span>
+
+  <div class="cards">
+    <div class="card card--tow">
+      <div class="card__bar"></div>
+      <div class="card__body">
+        <span class="pill pill--tow">Tow and Haul Zone</span>
+        <p>Cars will be ticketed and towed.</p>
+      </div>
+    </div>
+
+    <div class="card card--ticket">
+      <div class="card__bar"></div>
+      <div class="card__body">
+        <span class="pill pill--ticket">Ticketing Zone</span>
+        <p>Cars will be ticketed; the crew will work around them.</p>
+      </div>
+    </div>
+
+    <div class="card card--none">
+      <div class="card__bar"></div>
+      <div class="card__body">
+        <span class="pill pill--none">No Snow Removal Today</span>
+        <p>Parking is allowed.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    <strong>On any day without active removal:</strong> streets stay open for parking
+    unless marked otherwise for Skijoring detour routes or street sweeping.
+  </p>
+
+  <div class="cta-wrap">
+    <a class="cta" href="https://www.telluride.gov/260/Street-Maintenance" target="_blank" rel="noopener">
+      View the Official Street Maintenance Page
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+    </a>
+    <p class="cta-sub">telluride.gov — hours, contacts, and full maintenance policy</p>
+  </div>
+
+  <span class="section-label">Get alerts by text</span>
+  <div class="notify">
+    <div class="notify__item">
+      <p class="notify__code">SNOW → 38276</p>
+      <p class="notify__desc">Snow removal notifications only.</p>
+    </div>
+    <div class="notify__item">
+      <p class="notify__code">TELLURIDE → 38276</p>
+      <p class="notify__desc">All Town of Telluride text alerts.</p>
+    </div>
+  </div>
+</main>
+</body>
+</html>
