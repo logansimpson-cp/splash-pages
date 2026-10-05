@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Push to Public — Snow Removal</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111310;
+    --surface:#1a1d18;
+    --ink:#f3f1e8;
+    --muted:#a9b0a4;
+    --line:rgba(255,255,255,0.12);
+    --forest:#257227;
+    --forest-dark:#1a5a1c;
+    --danger:#ff6b6b;
+    --ok:#7fd482;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    justify-content:center;
+    padding:48px 20px;
+  }
+  main{ width:100%; max-width:560px; }
+  h1{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:2.2rem;
+    margin:0 0 6px;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:1rem;
+    margin:0 0 32px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px 26px;
+    margin-bottom:18px;
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .card h2{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.2rem;
+    margin:0 0 14px;
+  }
+  label{
+    display:block;
+    font-size:0.88rem;
+    color:var(--muted);
+    margin:0 0 6px;
+  }
+  input[type="text"], input[type="password"], input[type="url"], input[type="number"]{
+    width:100%;
+    background:#0d0f0b;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:0.95rem;
+    margin-bottom:14px;
+  }
+  input:focus{ outline:2px solid var(--forest); outline-offset:1px; }
+  button{
+    width:100%;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.05rem;
+    letter-spacing:0.01em;
+    padding:13px 20px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    transition:transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-primary{
+    background:var(--forest);
+    color:#fff;
+    box-shadow: 0 14px 28px -12px rgba(37,114,39,0.55);
+  }
+  .btn-primary:hover:not(:disabled){
+    background:var(--forest-dark);
+    transform:translateY(-1px);
+  }
+  .btn-secondary{
+    background:#2a2e26;
+    color:var(--ink);
+    border:1px solid var(--line);
+    margin-bottom:12px;
+  }
+  .btn-secondary:hover:not(:disabled){ background:#343a2e; }
+  .btn-danger{
+    background:#5a1f1f;
+    color:#ffd9d9;
+    box-shadow: 0 14px 28px -12px rgba(255,0,0,0.3);
+  }
+  .btn-danger:hover:not(:disabled){
+    background:#712828;
+    transform:translateY(-1px);
+  }
+  .status{
+    font-size:0.9rem;
+    line-height:1.5;
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:8px;
+    display:none;
+    white-space:pre-line;
+  }
+  .status.show{ display:block; }
+  .status.ok{ background:rgba(127,212,130,0.1); color:var(--ok); border:1px solid rgba(127,212,130,0.3); }
+  .status.err{ background:rgba(255,107,107,0.1); color:var(--danger); border:1px solid rgba(255,107,107,0.3); }
+  .status.pending{ background:rgba(169,176,164,0.1); color:var(--muted); border:1px solid var(--line); }
+  .hint{ font-size:0.8rem; color:var(--muted); margin-top:-6px; margin-bottom:14px; }
+  .signed-in-as{ font-size:0.85rem; color:var(--ok); margin-bottom:14px; }
+  .confirm-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:16px;
+    font-size:0.9rem;
+    color:var(--muted);
+  }
+  .preview-count{
+    font-size:0.95rem;
+    margin:0 0 16px;
+    padding:10px 14px;
+    background:#0d0f0b;
+    border-radius:8px;
+    border:1px solid var(--line);
+    display:none;
+  }
+  .preview-count.show{ display:block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Push to Public</h1>
+  <p class="subtitle">Copies every block's current status from the internal layer into the public layer.</p>
+
+  <div class="card" id="setupCard">
+    <h2>1. Layer setup</h2>
+    <label for="sourceUrl">Source (Internal) layer REST URL</label>
+    <input type="url" id="sourceUrl" placeholder="https://services.arcgis.com/XXXX/.../SnowRemovalBlocks_Internal/FeatureServer/0">
+    <label for="destUrl">Destination (Public) layer REST URL</label>
+    <input type="url" id="destUrl" placeholder="https://services.arcgis.com/XXXX/.../SnowRemovalBlocks_Public/FeatureServer/0">
+    <p class="hint">Both saved in this browser only, not uploaded anywhere.</p>
+
+    <label for="batchSize">Batch size (features per request)</label>
+    <input type="number" id="batchSize" value="200" min="1" max="1000">
+    <p class="hint">200 is a safe default. Lower this if you have very large/complex geometries and requests start failing.</p>
+  </div>
+
+  <div class="card" id="signInCard">
+    <h2>2. Sign in</h2>
+    <div id="signedInBanner" class="signed-in-as" style="display:none;"></div>
+    <div id="signInForm">
+      <label for="username">ArcGIS Online username</label>
+      <input type="text" id="username" autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password">
+      <p class="hint">Sent directly to arcgis.com for a temporary token — never stored or logged by this page.</p>
+      <button class="btn-primary" id="signInBtn">Sign In</button>
+    </div>
+    <div id="statusAuth" class="status"></div>
+  </div>
+
+  <div class="card" id="previewCard" style="display:none;">
+    <h2>3. Preview</h2>
+    <button class="btn-secondary" id="previewBtn">Check What Will Be Pushed</button>
+    <div class="preview-count" id="previewCount"></div>
+    <div id="statusPreview" class="status"></div>
+  </div>
+
+  <div class="card" id="actionCard" style="display:none;">
+    <h2>4. Push</h2>
+    <div class="confirm-row">
+      <input type="checkbox" id="confirmBox">
+      <label for="confirmBox" style="margin:0;">I understand this will erase everything currently in the public layer and replace it with the internal layer's data</label>
+    </div>
+    <button class="btn-danger" id="pushBtn" disabled>Push to Public</button>
+    <div id="statusPush" class="status"></div>
+  </div>
+</main>
+
+<script>
+  const AGOL_TOKEN_URL = "https://www.arcgis.com/sharing/rest/generateToken";
+  // Fields that are system-managed and must never be sent back in an addFeatures payload
+  const DROP_FIELDS = ['objectid', 'globalid', 'creationdate', 'creator', 'editdate', 'editor', 'shape__area', 'shape__length'];
+
+  let token = null;
+  let tokenExpires = 0;
+  let fetchedFeatures = null; // cached from preview, reused by push if not stale
+
+  const sourceUrlInput = document.getElementById('sourceUrl');
+  const destUrlInput = document.getElementById('destUrl');
+  const batchSizeInput = document.getElementById('batchSize');
+
+  // Persist non-sensitive config only
+  ['sourceUrl', 'destUrl', 'batchSize'].forEach(id => {
+    const el = document.getElementById(id);
+    const saved = localStorage.getItem('push_tool_' + id);
+    if (saved) el.value = saved;
+    el.addEventListener('change', () => localStorage.setItem('push_tool_' + id, el.value.trim()));
+  });
+
+  function showStatus(el, type, msg) {
+    el.className = 'status show ' + type;
+    el.textContent = msg;
+  }
+
+  function cleanUrl(u) {
+    return u.trim().replace(/\/$/, '');
+  }
+
+  document.getElementById('signInBtn').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const statusEl = document.getElementById('statusAuth');
+
+    if (!username || !password) {
+      showStatus(statusEl, 'err', 'Enter both username and password.');
+      return;
+    }
+
+    showStatus(statusEl, 'pending', 'Signing in...');
+
+    try {
+      const body = new URLSearchParams({
+        username,
+        password,
+        f: 'json',
+        referer: window.location.origin || 'https://localhost',
+        expiration: '60'
+      });
+
+      const resp = await fetch(AGOL_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || 'Sign-in failed.');
+
+      token = data.token;
+      tokenExpires = data.expires;
+
+      document.getElementById('signInForm').style.display = 'none';
+      const banner = document.getElementById('signedInBanner');
+      banner.style.display = 'block';
+      banner.textContent = `Signed in as ${username}. Token valid for 60 minutes.`;
+      statusEl.className = 'status';
+      document.getElementById('previewCard').style.display = 'block';
+      document.getElementById('password').value = '';
+    } catch (err) {
+      showStatus(statusEl, 'err',
+        'Sign-in failed: ' + err.message +
+        ' — if your organization requires single sign-on, this username/password method won\'t work and we\'ll need an OAuth app instead.');
+    }
+  });
+
+  function checkToken(statusEl) {
+    if (!token || Date.now() > tokenExpires) {
+      showStatus(statusEl, 'err', 'Your session expired — please sign in again above.');
+      document.getElementById('signInForm').style.display = 'block';
+      document.getElementById('signedInBanner').style.display = 'none';
+      return false;
+    }
+    return true;
+  }
+
+  async function queryAllFeatures(layerUrl) {
+    const body = new URLSearchParams({
+      f: 'json',
+      token: token,
+      where: '1=1',
+      outFields: '*',
+      returnGeometry: 'true'
+    });
+    const resp = await fetch(layerUrl + '/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data.features || [];
+  }
+
+  function stripSystemFields(features) {
+    return features.map(f => {
+      const attrs = {};
+      for (const key in f.attributes) {
+        if (!DROP_FIELDS.includes(key.toLowerCase())) {
+          attrs[key] = f.attributes[key];
+        }
+      }
+      return { geometry: f.geometry, attributes: attrs };
+    });
+  }
+
+  document.getElementById('previewBtn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('statusPreview');
+    const countEl = document.getElementById('previewCount');
+    const sourceUrl = cleanUrl(sourceUrlInput.value);
+
+    if (!sourceUrl) {
+      showStatus(statusEl, 'err', 'Enter the source (Internal) layer URL first.');
+      return;
+    }
+    if (!checkToken(statusEl)) return;
+
+    showStatus(statusEl, 'pending', 'Fetching current data from the internal layer...');
+    countEl.classList.remove('show');
+
+    try {
+      const features = await queryAllFeatures(sourceUrl);
+      fetchedFeatures = stripSystemFields(features);
+
+      countEl.classList.add('show');
+      countEl.textContent = `${features.length} blocks found in the internal layer, ready to push.`;
+      statusEl.className = 'status';
+      document.getElementById('actionCard').style.display = 'block';
+
+      if (features.length === 0) {
+        showStatus(statusEl, 'err',
+          'Warning: 0 features were returned from the source layer. Pushing now would ERASE the public layer with nothing to replace it. Do not proceed — check the source URL.');
+        document.getElementById('actionCard').style.display = 'none';
+      }
+    } catch (err) {
+      showStatus(statusEl, 'err', 'Preview failed: ' + err.message);
+    }
+  });
+
+  document.getElementById('confirmBox').addEventListener('change', (e) => {
+    document.getElementById('pushBtn').disabled = !e.target.checked;
+  });
+
+  async function deleteAllFeatures(layerUrl) {
+    const body = new URLSearchParams({ f: 'json', token: token, where: '1=1' });
+    const resp = await fetch(layerUrl + '/deleteFeatures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data;
+  }
+
+  async function addFeaturesBatch(layerUrl, features) {
+    const body = new URLSearchParams({
+      f: 'json',
+      token: token,
+      features: JSON.stringify(features)
+    });
+    const resp = await fetch(layerUrl + '/addFeatures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data;
+  }
+
+  document.getElementById('pushBtn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('statusPush');
+    const destUrl = cleanUrl(destUrlInput.value);
+    const batchSize = Math.max(1, parseInt(batchSizeInput.value, 10) || 200);
+
+    if (!destUrl) {
+      showStatus(statusEl, 'err', 'Enter the destination (Public) layer URL first.');
+      return;
+    }
+    if (!fetchedFeatures || fetchedFeatures.length === 0) {
+      showStatus(statusEl, 'err', 'Run the preview step first to fetch current data.');
+      return;
+    }
+    if (!checkToken(statusEl)) return;
+
+    document.getElementById('pushBtn').disabled = true;
+
+    try {
+      showStatus(statusEl, 'pending', 'Deleting existing public records...');
+      await deleteAllFeatures(destUrl);
+
+      let added = 0;
+      let failed = 0;
+      for (let i = 0; i < fetchedFeatures.length; i += batchSize) {
+        const chunk = fetchedFeatures.slice(i, i + batchSize);
+        showStatus(statusEl, 'pending',
+          `Adding records ${i + 1}–${Math.min(i + batchSize, fetchedFeatures.length)} of ${fetchedFeatures.length}...`);
+        const result = await addFeaturesBatch(destUrl, chunk);
+        (result.addResults || []).forEach(r => { r.success ? added++ : failed++; });
+      }
+
+      if (failed > 0) {
+        showStatus(statusEl, 'err', `Push finished with issues: ${added} added, ${failed} failed. Check field names match exactly between the two layers.`);
+      } else {
+        showStatus(statusEl, 'ok', `Done — ${added} blocks pushed to the public layer.`);
+      }
+
+      document.getElementById('confirmBox').checked = false;
+      fetchedFeatures = null; // force a fresh preview before pushing again
+    } catch (err) {
+      showStatus(statusEl, 'err',
+        'Push failed partway through: ' + err.message +
+        ' — the public layer may now be partially empty. Re-run the preview and push again to finish the sync.');
+    } finally {
+      document.getElementById('pushBtn').disabled = true;
+    }
+  });
+</script>
+</body>
+</html>
