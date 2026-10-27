@@ -35,6 +35,64 @@
     margin:0 auto;
     padding: 56px 24px 72px;
   }
+
+  /* ---------- Last updated banner ---------- */
+  .updated{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 20px;
+    margin:0 0 36px;
+    box-shadow:var(--shadow);
+  }
+  .updated__dot{
+    width:12px;
+    height:12px;
+    min-width:12px;
+    border-radius:50%;
+    background:var(--muted);
+  }
+  .updated.is-fresh{
+    border-color:rgba(49,183,0,0.35);
+    box-shadow: var(--shadow), 0 10px 30px -14px rgba(49,183,0,0.45);
+  }
+  .updated.is-fresh .updated__dot{
+    background:var(--none);
+    animation:pulse 2s ease-out infinite;
+  }
+  .updated.is-error .updated__dot{ background:#7a7f75; }
+  @keyframes pulse{
+    0%  { box-shadow:0 0 0 0 rgba(49,183,0,0.6); }
+    70% { box-shadow:0 0 0 10px rgba(49,183,0,0); }
+    100%{ box-shadow:0 0 0 0 rgba(49,183,0,0); }
+  }
+  .updated__label{
+    margin:0;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:0.85rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .updated__date{
+    display:block;
+    margin:2px 0 0;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:1.6rem;
+    line-height:1.15;
+    color:var(--ink);
+  }
+  .updated__rel{
+    margin:2px 0 0;
+    font-size:0.9rem;
+    color:var(--muted);
+  }
+
   .section-label{
     display:block;
     font-family:'Big Shoulders Display', Arial, sans-serif;
@@ -176,16 +234,29 @@
 
   @media (max-width:600px){
     .notify{ grid-template-columns:1fr; }
+    .updated__date{ font-size:1.35rem; }
   }
 
   @media (prefers-reduced-motion: reduce){
     .cta{ transition:none; }
     .card{ transition:none; }
+    .updated.is-fresh .updated__dot{ animation:none; }
   }
 </style>
 </head>
 <body>
 <main>
+
+  <!-- Last updated banner: filled in by the script at the bottom -->
+  <div class="updated" id="updated" aria-live="polite">
+    <div class="updated__dot" aria-hidden="true"></div>
+    <div>
+      <p class="updated__label">Snow removal map last updated</p>
+      <time class="updated__date" id="updatedDate">Checking…</time>
+      <p class="updated__rel" id="updatedRel"></p>
+    </div>
+  </div>
+
   <span class="section-label">What each status means</span>
 
   <div class="cards">
@@ -239,5 +310,73 @@
     </div>
   </div>
 </main>
+
+<script>
+  // ===== CONFIG =====
+  // Same URL as the "Destination (Public) layer" in the Push to Public tool.
+  const PUBLIC_LAYER_URL = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/SnowRemovalBlocks_Public/FeatureServer/2";
+  const TIME_ZONE   = "America/Denver";
+  const FRESH_HOURS = 24;              // dot pulses green if updated within this window
+  const REFRESH_MS  = 5 * 60 * 1000;   // re-check every 5 minutes while the page is open
+  // ==================
+
+  const box    = document.getElementById('updated');
+  const dateEl = document.getElementById('updatedDate');
+  const relEl  = document.getElementById('updatedRel');
+  let lastTs = null;
+
+  function relativeTime(ts) {
+    const mins = Math.round((Date.now() - ts) / 60000);
+    if (mins < 1)  return 'Updated just now';
+    if (mins < 60) return `Updated ${mins} minute${mins === 1 ? '' : 's'} ago`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24)  return `Updated ${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.round(hrs / 24);
+    return `Updated ${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  function render(ts) {
+    const d = new Date(ts);
+    const day  = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone: TIME_ZONE });
+    const time = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: TIME_ZONE });
+    dateEl.textContent = `${day} · ${time} MT`;
+    dateEl.setAttribute('datetime', d.toISOString());
+    relEl.textContent = relativeTime(ts);
+    box.classList.remove('is-error');
+    box.classList.toggle('is-fresh', (Date.now() - ts) < FRESH_HOURS * 3600000);
+  }
+
+  function renderUnavailable() {
+    if (lastTs) { render(lastTs); return; }   // keep showing the last good value
+    dateEl.textContent = 'Update time unavailable';
+    dateEl.removeAttribute('datetime');
+    relEl.textContent = 'Please check the map or the Street Maintenance page.';
+    box.classList.remove('is-fresh');
+    box.classList.add('is-error');
+  }
+
+  async function loadUpdated() {
+    try {
+      const url = PUBLIC_LAYER_URL.replace(/\/$/, '') + '?f=json&_=' + Date.now();
+      const resp = await fetch(url, { cache: 'no-store' });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message);
+      const info = data.editingInfo || {};
+      const ts = info.dataLastEditDate || info.lastEditDate;   // ms since epoch
+      if (!ts) throw new Error('No edit date on layer');
+      lastTs = ts;
+      render(ts);
+    } catch (err) {
+      console.warn('Last-updated lookup failed:', err);
+      renderUnavailable();
+    }
+  }
+
+  loadUpdated();
+  setInterval(loadUpdated, REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadUpdated();
+  });
+</script>
 </body>
 </html>
