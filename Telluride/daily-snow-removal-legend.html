@@ -21,6 +21,7 @@
     --tow:#ff0000; --tow-ink:#ffd9d9;
     --ticket:#ffd200; --ticket-ink:#2b2200;
     --none:#31b700; --none-ink:#0a1f00;
+    --storm:#8fd0ff;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -35,6 +36,95 @@
     margin:0 auto;
     padding: 56px 24px 72px;
   }
+
+  /* ---------- Storm mode: full-panel splash ---------- */
+  .storm{
+    position:fixed;
+    inset:0;
+    z-index:50;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    background:rgba(10,12,9,0.9);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+  }
+  .storm.show{ display:flex; }
+  .storm__card{
+    width:100%;
+    max-width:520px;
+    text-align:center;
+    background:var(--surface);
+    border:1px solid rgba(143,208,255,0.35);
+    border-radius:18px;
+    padding:36px 28px 28px;
+    box-shadow: var(--shadow), 0 20px 50px -18px rgba(143,208,255,0.45);
+  }
+  .storm__icon{
+    display:block;
+    width:56px;
+    height:56px;
+    margin:0 auto 16px;
+    color:var(--storm);
+  }
+  .storm__title{
+    margin:0 0 10px;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:2.6rem;
+    line-height:1.05;
+    color:var(--ink);
+  }
+  .storm__sub{
+    margin:0 0 16px;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.35rem;
+    line-height:1.2;
+    color:var(--storm);
+  }
+  .storm__since{
+    margin:0 0 22px;
+    font-size:0.92rem;
+    color:var(--muted);
+  }
+  .storm__since:empty{ display:none; }
+  .storm__close{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1rem;
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 22px;
+    cursor:pointer;
+  }
+  .storm__close:hover{ background:#262a22; }
+  .storm__close:focus-visible{ outline:3px solid var(--storm); outline-offset:3px; }
+
+  /* Strip that stays at the top of the legend while storm mode is on */
+  .storm-strip{
+    display:none;
+    align-items:center;
+    gap:12px;
+    margin:0 0 14px;
+    padding:14px 18px;
+    border-radius:12px;
+    background:rgba(143,208,255,0.1);
+    border:1px solid rgba(143,208,255,0.4);
+  }
+  .storm-strip.show{ display:flex; }
+  .storm-strip svg{ width:26px; height:26px; min-width:26px; color:var(--storm); }
+  .storm-strip p{ margin:0; line-height:1.3; }
+  .storm-strip strong{
+    display:block;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:1.25rem;
+  }
+  .storm-strip span{ font-size:0.95rem; color:var(--storm); }
 
   /* ---------- Last updated banner ---------- */
   .updated{
@@ -235,6 +325,8 @@
   @media (max-width:600px){
     .notify{ grid-template-columns:1fr; }
     .updated__date{ font-size:1.35rem; }
+    .storm__title{ font-size:2.05rem; }
+    .storm__sub{ font-size:1.15rem; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -245,7 +337,32 @@
 </style>
 </head>
 <body>
+
+<!-- Storm mode splash: shown only when the storm table says Yes -->
+<div class="storm" id="storm" role="dialog" aria-modal="true" aria-labelledby="stormTitle">
+  <div class="storm__card">
+    <svg class="storm__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 2v20M3.34 7l17.32 10M3.34 17l17.32-10"/>
+      <path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5"/>
+      <path d="M3.6 10.3l3.4-.9-.9-3.4M20.4 13.7l-3.4.9.9 3.4"/>
+      <path d="M6.1 17.9l.9-3.4-3.4-.9M17.9 6.1l-.9 3.4 3.4.9"/>
+    </svg>
+    <h1 class="storm__title" id="stormTitle">Active Snow Plowing</h1>
+    <p class="storm__sub">No Towing or Ticketing in Any Zones</p>
+    <p class="storm__since" id="stormSince"></p>
+    <button class="storm__close" id="stormClose" type="button">Close</button>
+  </div>
+</div>
+
 <main>
+
+  <!-- Stays visible above the legend for as long as storm mode is on -->
+  <div class="storm-strip" id="stormStrip" role="status">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M12 2v20M3.34 7l17.32 10M3.34 17l17.32-10"/>
+    </svg>
+    <p><strong>Active Snow Plowing</strong><span>No towing or ticketing in any zones.</span></p>
+  </div>
 
   <!-- Last updated banner: filled in by the script at the bottom -->
   <div class="updated" id="updated" aria-live="polite">
@@ -315,11 +432,37 @@
   // ===== CONFIG =====
   // Same URL as the "Destination (Public) layer" in the Push to Public tool.
   const PUBLIC_LAYER_URL = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/SnowRemovalBlocks_Public/FeatureServer/2";
-  const TIME_ZONE   = "America/Denver";
-  const FRESH_HOURS = 24;              // dot pulses green if updated within this window
-  const REFRESH_MS  = 5 * 60 * 1000;   // re-check every 5 minutes while the page is open
+  // The PUBLIC, read-only view of the one-row storm mode table.
+  const STORM_TABLE_URL  = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/ActiveStorm_Public/FeatureServer";
+  const STORM_FIELD      = "StormActive";      // field holding Yes / No
+  const TIME_ZONE        = "America/Denver";
+  const FRESH_HOURS      = 24;                 // dot pulses green if updated within this window
+  const REFRESH_MS       = 2 * 60 * 1000;      // re-check every 2 minutes while the page is open
   // ==================
 
+  function cleanUrl(u) { return u.trim().replace(/\/$/, ''); }
+
+  function formatStamp(ts) {
+    const d = new Date(ts);
+    const day  = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone: TIME_ZONE });
+    const time = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: TIME_ZONE });
+    return `${day} · ${time} MT`;
+  }
+
+  async function getJson(url) {
+    const sep = url.includes('?') ? '&' : '?';
+    const resp = await fetch(url + sep + '_=' + Date.now(), { cache: 'no-store' });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || 'Request failed');
+    return data;
+  }
+
+  function lastEditOf(layerInfo) {
+    const info = (layerInfo && layerInfo.editingInfo) || {};
+    return info.dataLastEditDate || info.lastEditDate || null;
+  }
+
+  /* ---------- Last updated banner ---------- */
   const box    = document.getElementById('updated');
   const dateEl = document.getElementById('updatedDate');
   const relEl  = document.getElementById('updatedRel');
@@ -335,19 +478,16 @@
     return `Updated ${days} day${days === 1 ? '' : 's'} ago`;
   }
 
-  function render(ts) {
-    const d = new Date(ts);
-    const day  = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone: TIME_ZONE });
-    const time = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: TIME_ZONE });
-    dateEl.textContent = `${day} · ${time} MT`;
-    dateEl.setAttribute('datetime', d.toISOString());
+  function renderUpdated(ts) {
+    dateEl.textContent = formatStamp(ts);
+    dateEl.setAttribute('datetime', new Date(ts).toISOString());
     relEl.textContent = relativeTime(ts);
     box.classList.remove('is-error');
     box.classList.toggle('is-fresh', (Date.now() - ts) < FRESH_HOURS * 3600000);
   }
 
   function renderUnavailable() {
-    if (lastTs) { render(lastTs); return; }   // keep showing the last good value
+    if (lastTs) { renderUpdated(lastTs); return; }   // keep showing the last good value
     dateEl.textContent = 'Update time unavailable';
     dateEl.removeAttribute('datetime');
     relEl.textContent = 'Please check the map or the Street Maintenance page.';
@@ -357,25 +497,65 @@
 
   async function loadUpdated() {
     try {
-      const url = PUBLIC_LAYER_URL.replace(/\/$/, '') + '?f=json&_=' + Date.now();
-      const resp = await fetch(url, { cache: 'no-store' });
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error.message);
-      const info = data.editingInfo || {};
-      const ts = info.dataLastEditDate || info.lastEditDate;   // ms since epoch
+      const data = await getJson(cleanUrl(PUBLIC_LAYER_URL) + '?f=json');
+      const ts = lastEditOf(data);
       if (!ts) throw new Error('No edit date on layer');
       lastTs = ts;
-      render(ts);
+      renderUpdated(ts);
     } catch (err) {
       console.warn('Last-updated lookup failed:', err);
       renderUnavailable();
     }
   }
 
-  loadUpdated();
-  setInterval(loadUpdated, REFRESH_MS);
+  /* ---------- Storm mode ---------- */
+  const stormEl    = document.getElementById('storm');
+  const stormStrip = document.getElementById('stormStrip');
+  const stormSince = document.getElementById('stormSince');
+  let stormDismissed = false;
+
+  document.getElementById('stormClose').addEventListener('click', () => {
+    stormDismissed = true;
+    stormEl.classList.remove('show');
+  });
+
+  function renderStorm(active, ts) {
+    if (!active) {
+      stormEl.classList.remove('show');
+      stormStrip.classList.remove('show');
+      stormDismissed = false;               // so the splash shows again next storm
+      return;
+    }
+    stormSince.textContent = ts ? `In effect since ${formatStamp(ts)}` : '';
+    stormStrip.classList.add('show');
+    if (!stormDismissed) stormEl.classList.add('show');
+  }
+
+  async function loadStorm() {
+    try {
+      const base = cleanUrl(STORM_TABLE_URL);
+      const [q, info] = await Promise.all([
+        getJson(base + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=1&f=json'),
+        getJson(base + '?f=json').catch(() => null)
+      ]);
+      const feat = (q.features || [])[0];
+      if (!feat) throw new Error('Storm table has no rows');
+      const key = Object.keys(feat.attributes).find(k => k.toLowerCase() === STORM_FIELD.toLowerCase());
+      const val = key ? feat.attributes[key] : null;
+      const active = ['yes', 'true', '1', 'on'].includes(String(val).trim().toLowerCase());
+      renderStorm(active, lastEditOf(info));
+    } catch (err) {
+      // If the lookup fails, leave whatever is currently showing.
+      console.warn('Storm mode lookup failed:', err);
+    }
+  }
+
+  function refreshAll() { loadUpdated(); loadStorm(); }
+
+  refreshAll();
+  setInterval(refreshAll, REFRESH_MS);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') loadUpdated();
+    if (document.visibilityState === 'visible') refreshAll();
   });
 </script>
 </body>
