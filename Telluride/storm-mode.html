@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storm Mode — Snow Removal</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111310;
+    --surface:#1a1d18;
+    --ink:#f3f1e8;
+    --muted:#a9b0a4;
+    --line:rgba(255,255,255,0.12);
+    --forest:#257227;
+    --forest-dark:#1a5a1c;
+    --danger:#ff6b6b;
+    --ok:#7fd482;
+    --storm:#8fd0ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    justify-content:center;
+    padding:48px 20px;
+  }
+  main{ width:100%; max-width:560px; }
+  h1{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:2.2rem;
+    margin:0 0 6px;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:1rem;
+    margin:0 0 32px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px 26px;
+    margin-bottom:18px;
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .card h2{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.2rem;
+    margin:0 0 14px;
+  }
+  label{
+    display:block;
+    font-size:0.88rem;
+    color:var(--muted);
+    margin:0 0 6px;
+  }
+  input[type="text"], input[type="password"], input[type="url"]{
+    width:100%;
+    background:#0d0f0b;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:0.95rem;
+    margin-bottom:14px;
+  }
+  input:focus{ outline:2px solid var(--forest); outline-offset:1px; }
+  button{
+    width:100%;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:800;
+    font-size:1.05rem;
+    letter-spacing:0.01em;
+    padding:13px 20px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    transition:transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-primary{
+    background:var(--forest);
+    color:#fff;
+    box-shadow: 0 14px 28px -12px rgba(37,114,39,0.55);
+  }
+  .btn-primary:hover:not(:disabled){ background:var(--forest-dark); transform:translateY(-1px); }
+  .btn-storm{
+    background:#1d3b52;
+    color:#e3f4ff;
+    border:1px solid rgba(143,208,255,0.4);
+    box-shadow: 0 14px 28px -12px rgba(143,208,255,0.35);
+    margin-bottom:12px;
+  }
+  .btn-storm:hover:not(:disabled){ background:#24495f; transform:translateY(-1px); }
+  .btn-secondary{
+    background:#2a2e26;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn-secondary:hover:not(:disabled){ background:#343a2e; }
+  .status{
+    font-size:0.9rem;
+    line-height:1.5;
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:8px;
+    display:none;
+    white-space:pre-line;
+  }
+  .status.show{ display:block; }
+  .status.ok{ background:rgba(127,212,130,0.1); color:var(--ok); border:1px solid rgba(127,212,130,0.3); }
+  .status.err{ background:rgba(255,107,107,0.1); color:var(--danger); border:1px solid rgba(255,107,107,0.3); }
+  .status.pending{ background:rgba(169,176,164,0.1); color:var(--muted); border:1px solid var(--line); }
+  .hint{ font-size:0.8rem; color:var(--muted); margin-top:-6px; margin-bottom:14px; }
+  .signed-in-as{ font-size:0.85rem; color:var(--ok); margin-bottom:14px; }
+
+  .current{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 16px;
+    margin-bottom:18px;
+    border-radius:10px;
+    background:#0d0f0b;
+    border:1px solid var(--line);
+  }
+  .current__dot{ width:14px; height:14px; min-width:14px; border-radius:50%; background:var(--muted); }
+  .current.is-on{ border-color:rgba(143,208,255,0.45); }
+  .current.is-on .current__dot{ background:var(--storm); box-shadow:0 0 12px rgba(143,208,255,0.7); }
+  .current.is-off .current__dot{ background:var(--ok); }
+  .current__text{
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:1.35rem;
+    margin:0;
+  }
+  .current__sub{ font-size:0.85rem; color:var(--muted); margin:2px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Storm Mode</h1>
+  <p class="subtitle">Shows or hides the "Active Snow Plowing — No Towing or Ticketing in Any Zones" splash on the public map.</p>
+
+  <div class="card">
+    <h2>1. Table setup</h2>
+    <label for="tableUrl">Storm mode table REST URL (the editable source, not the public view)</label>
+    <input type="url" id="tableUrl" placeholder="https://services.arcgis.com/XXXX/.../SnowStormMode/FeatureServer/0">
+    <p class="hint">Saved in this browser only, not uploaded anywhere.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Sign in</h2>
+    <div id="signedInBanner" class="signed-in-as" style="display:none;"></div>
+    <div id="signInForm">
+      <label for="username">ArcGIS Online username</label>
+      <input type="text" id="username" autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password">
+      <p class="hint">Sent directly to arcgis.com for a temporary token — never stored or logged by this page.</p>
+      <button class="btn-primary" id="signInBtn">Sign In</button>
+    </div>
+    <div id="statusAuth" class="status"></div>
+  </div>
+
+  <div class="card" id="toggleCard" style="display:none;">
+    <h2>3. Turn storm mode on or off</h2>
+    <div class="current" id="current">
+      <div class="current__dot" aria-hidden="true"></div>
+      <div>
+        <p class="current__text" id="currentText">Checking…</p>
+        <p class="current__sub" id="currentSub"></p>
+      </div>
+    </div>
+    <button class="btn-storm" id="onBtn" disabled>Turn ON — Active Snow Plowing</button>
+    <button class="btn-secondary" id="offBtn" disabled>Turn OFF — Back to Normal Map</button>
+    <div id="statusToggle" class="status"></div>
+  </div>
+</main>
+
+<script>
+  const AGOL_TOKEN_URL = "https://www.arcgis.com/sharing/rest/generateToken";
+  const STORM_FIELD = "StormActive";   // field holding Yes / No
+
+  let token = null;
+  let tokenExpires = 0;
+  let row = null;   // { oidField, oid, fieldName, active }
+
+  const tableUrlInput = document.getElementById('tableUrl');
+  try {
+    const saved = localStorage.getItem('storm_tool_tableUrl');
+    if (saved) tableUrlInput.value = saved;
+  } catch (e) {}
+  tableUrlInput.addEventListener('change', () => {
+    try { localStorage.setItem('storm_tool_tableUrl', tableUrlInput.value.trim()); } catch (e) {}
+  });
+
+  function showStatus(el, type, msg) {
+    el.className = 'status show ' + type;
+    el.textContent = msg;
+  }
+  function cleanUrl(u) { return u.trim().replace(/\/$/, ''); }
+
+  async function postForm(url, params) {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params)
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data;
+  }
+
+  function checkToken(statusEl) {
+    if (!token || Date.now() > tokenExpires) {
+      showStatus(statusEl, 'err', 'Your session expired — please sign in again above.');
+      document.getElementById('signInForm').style.display = 'block';
+      document.getElementById('signedInBanner').style.display = 'none';
+      return false;
+    }
+    return true;
+  }
+
+  function setButtons(enabled) {
+    document.getElementById('onBtn').disabled = !enabled || (row && row.active);
+    document.getElementById('offBtn').disabled = !enabled || (row && !row.active);
+  }
+
+  function renderCurrent() {
+    const box = document.getElementById('current');
+    const text = document.getElementById('currentText');
+    const sub = document.getElementById('currentSub');
+    box.classList.remove('is-on', 'is-off');
+    if (row.active) {
+      box.classList.add('is-on');
+      text.textContent = 'Storm mode is ON';
+      sub.textContent = 'The public map is showing the Active Snow Plowing splash.';
+    } else {
+      box.classList.add('is-off');
+      text.textContent = 'Storm mode is OFF';
+      sub.textContent = 'The public map is showing the normal legend.';
+    }
+    setButtons(true);
+  }
+
+  async function loadRow() {
+    const tableUrl = cleanUrl(tableUrlInput.value);
+    if (!tableUrl) throw new Error('Enter the storm mode table URL first.');
+    const data = await postForm(tableUrl + '/query', {
+      f: 'json', token, where: '1=1', outFields: '*', returnGeometry: 'false'
+    });
+    const features = data.features || [];
+    if (features.length === 0) throw new Error('The storm mode table has no rows. Add one row with StormActive = No.');
+    if (features.length > 1) console.warn('Storm table has more than one row; using the first.');
+    const attrs = features[0].attributes;
+    const oidField = data.objectIdFieldName ||
+      Object.keys(attrs).find(k => k.toLowerCase() === 'objectid' || k.toLowerCase() === 'fid');
+    const fieldName = Object.keys(attrs).find(k => k.toLowerCase() === STORM_FIELD.toLowerCase());
+    if (!oidField) throw new Error('Could not find the ObjectID field on the table.');
+    if (!fieldName) throw new Error(`Could not find a field named "${STORM_FIELD}" on the table.`);
+    const active = ['yes', 'true', '1', 'on'].includes(String(attrs[fieldName]).trim().toLowerCase());
+    row = { oidField, oid: attrs[oidField], fieldName, active };
+    renderCurrent();
+  }
+
+  document.getElementById('signInBtn').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const statusEl = document.getElementById('statusAuth');
+
+    if (!username || !password) {
+      showStatus(statusEl, 'err', 'Enter both username and password.');
+      return;
+    }
+    showStatus(statusEl, 'pending', 'Signing in...');
+
+    try {
+      const data = await postForm(AGOL_TOKEN_URL, {
+        username, password, f: 'json',
+        referer: window.location.origin || 'https://localhost',
+        expiration: '60'
+      });
+      token = data.token;
+      tokenExpires = data.expires;
+
+      document.getElementById('signInForm').style.display = 'none';
+      const banner = document.getElementById('signedInBanner');
+      banner.style.display = 'block';
+      banner.textContent = `Signed in as ${username}. Token valid for 60 minutes.`;
+      statusEl.className = 'status';
+      document.getElementById('password').value = '';
+      document.getElementById('toggleCard').style.display = 'block';
+
+      const toggleStatus = document.getElementById('statusToggle');
+      try {
+        await loadRow();
+        toggleStatus.className = 'status';
+      } catch (err) {
+        showStatus(toggleStatus, 'err', 'Could not read the storm mode table: ' + err.message);
+      }
+    } catch (err) {
+      showStatus(statusEl, 'err',
+        'Sign-in failed: ' + err.message +
+        ' — if your organization requires single sign-on, this username/password method won\'t work and we\'ll need an OAuth app instead.');
+    }
+  });
+
+  async function setStorm(turnOn) {
+    const statusEl = document.getElementById('statusToggle');
+    if (!checkToken(statusEl)) return;
+    setButtons(false);
+    showStatus(statusEl, 'pending', turnOn ? 'Turning storm mode on...' : 'Turning storm mode off...');
+
+    try {
+      if (!row) await loadRow();
+      const attrs = {};
+      attrs[row.oidField] = row.oid;
+      attrs[row.fieldName] = turnOn ? 'Yes' : 'No';
+      const result = await postForm(cleanUrl(tableUrlInput.value) + '/updateFeatures', {
+        f: 'json', token, features: JSON.stringify([{ attributes: attrs }])
+      });
+      const r = (result.updateResults || [])[0];
+      if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'Update was not accepted.');
+
+      await loadRow();   // re-read to confirm what's actually stored
+      showStatus(statusEl, 'ok', turnOn
+        ? 'Storm mode is ON. The public map will show the splash within about 2 minutes (sooner for anyone who reloads).'
+        : 'Storm mode is OFF. The public map will return to the normal legend within about 2 minutes.');
+    } catch (err) {
+      showStatus(statusEl, 'err', 'Could not change storm mode: ' + err.message);
+      setButtons(true);
+    }
+  }
+
+  document.getElementById('onBtn').addEventListener('click', () => setStorm(true));
+  document.getElementById('offBtn').addEventListener('click', () => setStorm(false));
+</script>
+</body>
+</html>
