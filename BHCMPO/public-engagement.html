@@ -72,6 +72,16 @@
   .cols p{max-width:78ch;margin:0 0 18px}
   .cols p:last-child{margin-bottom:0}
   .closing{margin-top:30px;font-size:1.05rem;font-weight:600;color:var(--navy);max-width:70ch;line-height:1.6}
+  .btn{display:inline-flex;align-items:center;gap:10px;margin-top:26px;
+    background:var(--navy);color:#fff;text-decoration:none;
+    font-family:inherit;font-size:1rem;font-weight:700;letter-spacing:.01em;
+    padding:16px 30px;border-radius:999px;
+    box-shadow:0 10px 24px -12px rgba(37,36,93,.7);
+    transition:transform .2s cubic-bezier(.2,.8,.3,1), background .2s ease, box-shadow .2s ease}
+  .btn:hover{background:var(--steel);transform:translateY(-3px);
+    box-shadow:0 16px 30px -12px rgba(37,36,93,.75)}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  .btn svg{width:16px;height:16px;flex:0 0 16px}
 
   /* ---------- categories ---------- */
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:34px}
@@ -149,6 +159,9 @@
         <p>Because the two plans share a study area and a public process, one comment map serves both.</p>
       </div>
       <p class="closing">Your comments help shape the projects this plan carries forward.</p>
+      <p style="margin:0"><a class="btn" href="https://www.surveymonkey.com/r/TSYB67P" target="_blank" rel="noopener">Take the Survey
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </a></p>
     </div>
   </section>
 
@@ -176,7 +189,7 @@
       <div class="step">
         <div class="step-num"></div>
         <div><h2>Pick a pin from the panel</h2>
-        <p>The editor panel is already open on the right. Click the category that matches what you want to tell us about.</p></div>
+        <p>The editor panel is open on the left. Click the category that matches what you want to tell us about.</p></div>
       </div>
       <div class="step">
         <div class="step-num"></div>
