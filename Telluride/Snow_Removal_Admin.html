@@ -170,7 +170,30 @@
     font-size:0.95rem;
     margin-bottom:14px;
   }
+  input[type="date"]{
+    background:#0d0f0b;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 12px;
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:1rem;
+    color-scheme:dark;
+  }
   input:focus{ outline:2px solid var(--forest); outline-offset:1px; }
+  .date-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 12px; }
+  .chip{
+    width:auto;
+    padding:9px 16px;
+    font-size:0.95rem;
+    background:#2a2e26;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .chip:hover{ background:#343a2e; }
+  .sched-note{ margin:0 0 12px; font-size:0.92rem; color:var(--muted); line-height:1.45; }
+  .sched-current{ margin:0 0 12px; font-size:0.92rem; color:var(--ok); }
+  .sched-current.is-warn{ color:var(--danger); }
   button{
     width:100%;
     font-family:'Big Shoulders Display', Arial, sans-serif;
@@ -369,7 +392,7 @@
 
   <!-- ===== TAB 2: PUSH TO PUBLIC ===== -->
   <section class="panel" id="panel-push" role="tabpanel" aria-labelledby="tab-push" hidden>
-    <p class="panel__intro">Copies every block's current status from the <strong>Internal</strong> layer into the <strong>Public</strong> layer. Each push also updates the "last updated" date residents see.</p>
+    <p class="panel__intro">Copies every block's current status from the <strong>Internal</strong> layer into the <strong>Public</strong> layer, then posts the schedule date. Residents see the schedule date and the "last updated" time at the top of the legend.</p>
 
     <details class="card setup" id="pushSetup">
       <summary>Layer setup <span class="setup__ok" id="pushSetupOk"></span></summary>
@@ -377,14 +400,32 @@
       <input type="url" id="pushSourceUrl" placeholder="https://services5.arcgis.com/XXXX/.../SnowRemovalBlocks_Internal/FeatureServer/2">
       <label for="pushDestUrl">Destination (Public) layer REST URL</label>
       <input type="url" id="pushDestUrl" placeholder="https://services5.arcgis.com/XXXX/.../SnowRemovalBlocks_Public/FeatureServer/2">
-      <p class="hint">Both saved in this browser only, not uploaded anywhere.</p>
+      <label for="pushTableUrl">Status table REST URL (the same editable table as the Storm Mode tab)</label>
+      <input type="url" id="pushTableUrl" placeholder="https://services5.arcgis.com/XXXX/.../ActiveStorm/FeatureServer/0">
+      <p class="hint">All saved in this browser only, not uploaded anywhere.</p>
       <label for="pushBatchSize">Batch size (features per request)</label>
       <input type="number" id="pushBatchSize" value="200" min="1" max="1000">
       <p class="hint">200 is a safe default. Lower this if requests start failing.</p>
     </details>
 
     <div class="card">
-      <h2>Step 1 · Preview</h2>
+      <h2>Step 1 · Schedule date</h2>
+      <div class="needs-auth" data-needs-auth>Sign in above to use this tool.</div>
+      <div data-authed hidden>
+        <p class="sched-note">Which day do these block statuses apply to? Residents see this date at the top of the legend.</p>
+        <div class="date-row">
+          <input type="date" id="schedDate" aria-label="Schedule date">
+          <button class="chip" type="button" data-offset="0">Today</button>
+          <button class="chip" type="button" data-offset="1">Tomorrow</button>
+        </div>
+        <p class="sched-current" id="schedCurrent"></p>
+        <button class="link-btn" id="schedSaveOnly" type="button">Update the date only (no push)</button>
+      </div>
+      <div id="statusSched" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Step 2 · Preview</h2>
       <div class="needs-auth" data-needs-auth>Sign in above to use this tool.</div>
       <div data-authed hidden>
         <button class="btn-secondary" id="previewBtn">Check What Will Be Pushed</button>
@@ -394,7 +435,7 @@
     </div>
 
     <div class="card" id="pushActionCard" hidden>
-      <h2>Step 2 · Push</h2>
+      <h2>Step 3 · Push</h2>
       <div class="confirm-row">
         <input type="checkbox" id="pushConfirm">
         <label for="pushConfirm" style="margin:0;">I understand this will erase everything currently in the public layer and replace it with the internal layer's data</label>
@@ -410,7 +451,7 @@
 
     <details class="card setup" id="stormSetup">
       <summary>Table setup <span class="setup__ok" id="stormSetupOk"></span></summary>
-      <label for="stormTableUrl">Storm mode table REST URL (the editable source, not the public view)</label>
+      <label for="stormTableUrl">Status table REST URL (the editable source, not the public view). The Push to Public tab uses the same table for the schedule date.</label>
       <input type="url" id="stormTableUrl" placeholder="https://services5.arcgis.com/XXXX/.../ActiveStorm/FeatureServer/0">
       <p class="hint">Saved in this browser only, not uploaded anywhere.</p>
     </details>
@@ -631,6 +672,19 @@
     font-size:0.9rem;
     color:var(--muted);
   }
+  .updated__tag{
+    display:inline-block;
+    margin-left:8px;
+    padding:2px 10px 3px;
+    border-radius:999px;
+    font-size:0.95rem;
+    font-weight:800;
+    vertical-align:middle;
+    background:rgba(49,183,0,0.18);
+    color:#9be37f;
+  }
+  .updated__tag:empty{ display:none; }
+  .updated__tag.is-past{ background:rgba(169,176,164,0.18); color:var(--muted); }
 
   .section-label{
     display:block;
@@ -817,8 +871,8 @@
   <div class="updated" id="updated" aria-live="polite">
     <div class="updated__dot" aria-hidden="true"></div>
     <div>
-      <p class="updated__label">Snow removal map last updated</p>
-      <time class="updated__date" id="updatedDate">Checking…</time>
+      <p class="updated__label" id="updatedLabel">Snow removal map last updated</p>
+      <p class="updated__date"><span id="updatedDate">Checking…</span><span class="updated__tag" id="updatedTag"></span></p>
       <p class="updated__rel" id="updatedRel"></p>
     </div>
   </div>
@@ -884,6 +938,7 @@
   // The PUBLIC, read-only view of the one-row storm mode table.
   const STORM_TABLE_URL  = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/ActiveStorm_Public/FeatureServer/0";
   const STORM_FIELD      = "StormActive";      // field holding Yes / No
+  const SCHED_FIELD      = "ScheduleFor";      // text field holding the schedule date (YYYY-MM-DD)
   const TIME_ZONE        = "America/Denver";
   const FRESH_HOURS      = 24;                 // dot pulses green if updated within this window
   const REFRESH_MS       = 2 * 60 * 1000;      // re-check every 2 minutes while the page is open
@@ -911,37 +966,61 @@
     return info.dataLastEditDate || info.lastEditDate || null;
   }
 
-  /* ---------- Last updated banner ---------- */
-  const box    = document.getElementById('updated');
-  const dateEl = document.getElementById('updatedDate');
-  const relEl  = document.getElementById('updatedRel');
-  let lastTs = null;
+  /* ---------- Schedule date + last updated banner ---------- */
+  const box     = document.getElementById('updated');
+  const labelEl = document.getElementById('updatedLabel');
+  const dateEl  = document.getElementById('updatedDate');
+  const tagEl   = document.getElementById('updatedTag');
+  const relEl   = document.getElementById('updatedRel');
+  let lastTs = null;      // last edit time of the Public layer
+  let schedIso = '';      // schedule date entered by Public Works (YYYY-MM-DD)
+  let updatedFailed = false;
 
   function relativeTime(ts) {
     const mins = Math.round((Date.now() - ts) / 60000);
-    if (mins < 1)  return 'Updated just now';
-    if (mins < 60) return `Updated ${mins} minute${mins === 1 ? '' : 's'} ago`;
+    if (mins < 1)  return 'just now';
+    if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
     const hrs = Math.round(mins / 60);
-    if (hrs < 24)  return `Updated ${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    if (hrs < 24)  return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
     const days = Math.round(hrs / 24);
-    return `Updated ${days} day${days === 1 ? '' : 's'} ago`;
+    return `${days} day${days === 1 ? '' : 's'} ago`;
   }
 
-  function renderUpdated(ts) {
-    dateEl.textContent = formatStamp(ts);
-    dateEl.setAttribute('datetime', new Date(ts).toISOString());
-    relEl.textContent = relativeTime(ts);
+  // A date in Telluride as YYYY-MM-DD (offset 0 = today, 1 = tomorrow)
+  function localIso(offsetDays) {
+    const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+  }
+
+  function parseIso(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '').trim());
+    return m ? { iso: m[0], date: new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) } : null;
+  }
+
+  function render() {
+    const sched = parseIso(schedIso);
     box.classList.remove('is-error');
-    box.classList.toggle('is-fresh', (Date.now() - ts) < FRESH_HOURS * 3600000);
-  }
-
-  function renderUnavailable() {
-    if (lastTs) { renderUpdated(lastTs); return; }   // keep showing the last good value
-    dateEl.textContent = 'Update time unavailable';
-    dateEl.removeAttribute('datetime');
-    relEl.textContent = 'Please check the map or the Street Maintenance page.';
-    box.classList.remove('is-fresh');
-    box.classList.add('is-error');
+    if (sched) {
+      labelEl.textContent = 'Snow removal schedule for';
+      dateEl.textContent = sched.date.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'UTC' });
+      const today = localIso(0), tomorrow = localIso(1);
+      tagEl.className = 'updated__tag';
+      tagEl.textContent = sched.iso === today ? 'Today' : sched.iso === tomorrow ? 'Tomorrow' : sched.iso < today ? 'Past date' : '';
+      if (sched.iso < today) tagEl.classList.add('is-past');
+      relEl.textContent = lastTs ? `Last updated ${formatStamp(lastTs)} (${relativeTime(lastTs)})` : '';
+    } else if (lastTs) {
+      labelEl.textContent = 'Snow removal map last updated';
+      dateEl.textContent = formatStamp(lastTs);
+      tagEl.textContent = '';
+      relEl.textContent = 'Updated ' + relativeTime(lastTs);
+    } else if (updatedFailed) {
+      labelEl.textContent = 'Snow removal map last updated';
+      dateEl.textContent = 'Update time unavailable';
+      tagEl.textContent = '';
+      relEl.textContent = 'Please check the map or the Street Maintenance page.';
+      box.classList.add('is-error');
+    }
+    box.classList.toggle('is-fresh', !!lastTs && (Date.now() - lastTs) < FRESH_HOURS * 3600000);
   }
 
   async function loadUpdated() {
@@ -950,11 +1029,12 @@
       const ts = lastEditOf(data);
       if (!ts) throw new Error('No edit date on layer');
       lastTs = ts;
-      renderUpdated(ts);
+      updatedFailed = false;
     } catch (err) {
       console.warn('Last-updated lookup failed:', err);
-      renderUnavailable();
+      updatedFailed = true;   // keep showing the last good value if there is one
     }
+    render();
   }
 
   /* ---------- Storm mode ---------- */
@@ -993,6 +1073,9 @@
       const val = key ? feat.attributes[key] : null;
       const active = ['yes', 'true', '1', 'on'].includes(String(val).trim().toLowerCase());
       renderStorm(active, lastEditOf(info));
+      const sKey = Object.keys(feat.attributes).find(k => k.toLowerCase() === SCHED_FIELD.toLowerCase());
+      schedIso = sKey && feat.attributes[sKey] ? String(feat.attributes[sKey]) : '';
+      render();
     } catch (err) {
       // If the lookup fails, leave whatever is currently showing.
       console.warn('Storm mode lookup failed:', err);
@@ -1055,12 +1138,17 @@
   persist('pushDestUrl', 'push_tool_destUrl');
   persist('pushBatchSize', 'push_tool_batchSize');
   persist('stormTableUrl', 'storm_tool_tableUrl');
+  persist('pushTableUrl', 'storm_tool_tableUrl');
+  // The Push and Storm Mode tabs use the same status table; keep the two boxes in step
+  [['pushTableUrl', 'stormTableUrl'], ['stormTableUrl', 'pushTableUrl']].forEach(([from, to]) => {
+    $(from).addEventListener('change', () => { $(to).value = $(from).value; updateSetupBadges(); });
+  });
 
   // Setup sections stay collapsed once URLs are saved, and open if something is missing
   function updateSetupBadges(){
     const sets = [
       ['resetSetup', 'resetSetupOk', [$('resetLayerUrl').value, $('resetStatusField').value]],
-      ['pushSetup',  'pushSetupOk',  [$('pushSourceUrl').value, $('pushDestUrl').value]],
+      ['pushSetup',  'pushSetupOk',  [$('pushSourceUrl').value, $('pushDestUrl').value, $('pushTableUrl').value]],
       ['stormSetup', 'stormSetupOk', [$('stormTableUrl').value]]
     ];
     sets.forEach(([d, badge, vals]) => {
@@ -1084,7 +1172,7 @@
     store.set('snow_admin_tab', tab.id);
     $('auth').hidden = (tab.id === 'tab-legend');
     if (tab.id === 'tab-legend') loadLegend(false);
-    if (tab.id === 'tab-storm' && token) loadStormRow().catch(() => {});
+    if ((tab.id === 'tab-storm' || tab.id === 'tab-push') && token) loadStormRow().catch(() => {});
     window.scrollTo(0, 0);
   }
   tabs.forEach((t, i) => {
@@ -1153,7 +1241,7 @@
   $('signOutBtn').addEventListener('click', () => {
     token = null; tokenExpires = 0;
     setAuthed(false);
-    ['statusReset', 'statusPreview', 'statusPush', 'statusStorm'].forEach(id => clearStatus($(id)));
+    ['statusReset', 'statusSched', 'statusPreview', 'statusPush', 'statusStorm'].forEach(id => clearStatus($(id)));
     $('previewCount').classList.remove('show');
   });
 
@@ -1245,6 +1333,8 @@
 
     if (!destUrl){ showStatus(statusEl, 'err', 'Enter the Destination (Public) layer URL in Layer setup first.'); $('pushSetup').open = true; return; }
     if (!fetchedFeatures || fetchedFeatures.length === 0){ showStatus(statusEl, 'err', 'Run the preview step first to fetch current data.'); return; }
+    const schedIso = $('schedDate').value;
+    if (!schedIso){ showStatus(statusEl, 'err', 'Pick the schedule date in Step 1 first.'); $('schedDate').focus(); return; }
     if (!checkToken(statusEl)) return;
 
     $('pushBtn').disabled = true;
@@ -1261,10 +1351,20 @@
         (result.addResults || []).forEach(r => { r.success ? added++ : failed++; });
       }
 
+      let dateMsg = '';
+      try {
+        showStatus(statusEl, 'pending', 'Posting the schedule date...');
+        await saveSchedule(schedIso);
+        dateMsg = ` Schedule date posted: ${friendlyDate(schedIso)}.`;
+      } catch (err){
+        dateMsg = `\nThe blocks were pushed, but the schedule date was not saved: ${err.message} Fix that, then use "Update the date only" in Step 1.`;
+      }
+
       if (failed > 0){
-        showStatus(statusEl, 'err', `Push finished with issues: ${added} added, ${failed} failed. Check field names match exactly between the two layers.`);
+        showStatus(statusEl, 'err', `Push finished with issues: ${added} added, ${failed} failed. Check field names match exactly between the two layers.` + dateMsg);
       } else {
-        showStatus(statusEl, 'ok', `Done — ${added} blocks pushed to the public layer. The public "last updated" date will show this push within a few minutes.`);
+        showStatus(statusEl, dateMsg.startsWith('\n') ? 'err' : 'ok',
+          `Done — ${added} blocks pushed to the public layer.` + dateMsg + ' The public map shows the update within a few minutes.');
       }
       $('pushConfirm').checked = false;
       fetchedFeatures = null;   // force a fresh preview before pushing again
@@ -1280,6 +1380,63 @@
 
   /* ================= Tab 3: Storm Mode ================= */
   const STORM_FIELD = "StormActive";   // field holding Yes / No
+  const SCHED_FIELD = "ScheduleFor";   // text field holding the schedule date (YYYY-MM-DD)
+
+  /* ----- Schedule date (stored on the same status table) ----- */
+  function localIso(offsetDays){
+    const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver', year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+  }
+  function friendlyDate(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '').trim());
+    if (!m) return String(iso || '');
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12));
+    return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'UTC' });
+  }
+  function renderSchedCurrent(){
+    const el = $('schedCurrent');
+    el.classList.remove('is-warn');
+    if (!stormRow){ el.textContent = ''; return; }
+    if (!stormRow.schedField){
+      el.classList.add('is-warn');
+      el.textContent = 'The status table has no ScheduleFor field yet. Add a text field named ScheduleFor to the table and include it in the public view.';
+      return;
+    }
+    el.textContent = stormRow.sched
+      ? `The public map currently shows the schedule for ${friendlyDate(stormRow.sched)}.`
+      : 'The public map does not show a schedule date yet.';
+  }
+  async function saveSchedule(iso){
+    if (!stormRow) await loadStormRow();
+    if (!stormRow) throw new Error('Add the status table URL in Layer setup first.');
+    if (!stormRow.schedField) throw new Error('The status table has no ScheduleFor field.');
+    const attrs = {};
+    attrs[stormRow.oidField] = stormRow.oid;
+    attrs[stormRow.schedField] = iso;
+    const result = await postForm(cleanUrl($('stormTableUrl').value) + '/updateFeatures', {
+      f: 'json', token, features: JSON.stringify([{ attributes: attrs }])
+    });
+    const r = (result.updateResults || [])[0];
+    if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'Update was not accepted.');
+    await loadStormRow();
+    legendLoaded = false;
+  }
+  document.querySelectorAll('.chip[data-offset]').forEach(btn => {
+    btn.addEventListener('click', () => { $('schedDate').value = localIso(+btn.dataset.offset); });
+  });
+  $('schedSaveOnly').addEventListener('click', async () => {
+    const statusEl = $('statusSched');
+    const iso = $('schedDate').value;
+    if (!iso){ showStatus(statusEl, 'err', 'Pick a date first.'); return; }
+    if (!checkToken(statusEl)) return;
+    showStatus(statusEl, 'pending', 'Saving the schedule date...');
+    try {
+      await saveSchedule(iso);
+      showStatus(statusEl, 'ok', `Schedule date updated to ${friendlyDate(iso)}. Block statuses were not changed.`);
+    } catch (err){
+      showStatus(statusEl, 'err', 'Could not save the schedule date: ' + err.message);
+    }
+  });
   let stormRow = null;                 // { oidField, oid, fieldName, active }
 
   function setStormButtons(enabled){
@@ -1304,6 +1461,7 @@
   }
 
   async function loadStormRow(){
+    if (!$('stormTableUrl').value && $('pushTableUrl').value) $('stormTableUrl').value = $('pushTableUrl').value;
     const tableUrl = cleanUrl($('stormTableUrl').value);
     if (!tableUrl){
       $('stormCurrentText').textContent = 'Table not set up';
@@ -1326,8 +1484,10 @@
     if (!oidField) throw new Error('Could not find the ObjectID field on the table.');
     if (!fieldName) throw new Error(`Could not find a field named "${STORM_FIELD}" on the table.`);
     const active = ['yes', 'true', '1', 'on'].includes(String(attrs[fieldName]).trim().toLowerCase());
-    stormRow = { oidField, oid: attrs[oidField], fieldName, active };
+    const schedField = Object.keys(attrs).find(k => k.toLowerCase() === SCHED_FIELD.toLowerCase()) || null;
+    stormRow = { oidField, oid: attrs[oidField], fieldName, active, schedField, sched: schedField && attrs[schedField] ? String(attrs[schedField]) : '' };
     renderStormCurrent();
+    renderSchedCurrent();
   }
 
   $('stormTableUrl').addEventListener('change', () => {
