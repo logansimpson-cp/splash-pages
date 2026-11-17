@@ -1034,7 +1034,11 @@
       body: new URLSearchParams(params)
     });
     const data = await resp.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    if (data.error){
+      // ArcGIS puts the specific reason (bad password, locked account, etc.) in error.details
+      const details = (data.error.details || []).filter(Boolean).join(' ');
+      throw new Error([data.error.message, details].filter(Boolean).join(' ') || JSON.stringify(data.error));
+    }
     return data;
   }
 
@@ -1141,7 +1145,7 @@
     } catch (err){
       showStatus(statusEl, 'err',
         'Sign-in failed: ' + err.message +
-        ' — if your organization requires single sign-on, this username/password method won\'t work and we\'ll need an OAuth app instead.');
+        '\nCheck the username and password by signing in at www.arcgis.com. Accounts with two-step verification turned on cannot use this sign-in.');
     }
   }
   $('signInBtn').addEventListener('click', signIn);
