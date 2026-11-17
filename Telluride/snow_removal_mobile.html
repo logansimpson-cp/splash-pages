@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snow Removal Status Banner — Town of Telluride</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111310;
+    --ink:#f3f1e8;
+    --muted:#a9b0a4;
+    --green:#31b700;
+    --storm:#8fd0ff;
+    --storm-bg:#16283a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .bar{
+    height:100%;
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:8px 14px;
+  }
+  .bar svg{ width:24px; height:24px; flex-shrink:0; }
+  .bar__text{ min-width:0; line-height:1.2; }
+  .bar__title{
+    display:block;
+    font-family:'Big Shoulders Display', Arial, sans-serif;
+    font-weight:900;
+    font-size:1.15rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .bar__sub{
+    display:block;
+    font-size:0.82rem;
+    color:var(--muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* Normal: last updated */
+  .dot{
+    width:10px; height:10px; flex-shrink:0;
+    border-radius:50%;
+    background:var(--muted);
+  }
+  .dot.is-fresh{ background:var(--green); animation:pulse 2s ease-out infinite; }
+  @keyframes pulse{
+    0%  { box-shadow:0 0 0 0 rgba(49,183,0,0.6); }
+    70% { box-shadow:0 0 0 8px rgba(49,183,0,0); }
+    100%{ box-shadow:0 0 0 0 rgba(49,183,0,0); }
+  }
+
+  /* Storm mode */
+  .bar--storm{
+    background:var(--storm-bg);
+    border-bottom:2px solid var(--storm);
+  }
+  .bar--storm svg{ color:var(--storm); }
+  .bar--storm .bar__sub{ color:var(--storm); font-weight:600; }
+
+  [hidden]{ display:none !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot.is-fresh{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Shown during Storm Mode -->
+<div class="bar bar--storm" id="stormBar" role="status" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+    <path d="M12 2v20M3.34 7l17.32 10M3.34 17l17.32-10"/>
+  </svg>
+  <div class="bar__text">
+    <span class="bar__title">Active Snow Plowing</span>
+    <span class="bar__sub">No towing or ticketing in any zones</span>
+  </div>
+</div>
+
+<!-- Shown the rest of the time -->
+<div class="bar" id="normalBar" aria-live="polite">
+  <span class="dot" id="dot" aria-hidden="true"></span>
+  <div class="bar__text">
+    <span class="bar__title" id="updatedDate">Checking schedule…</span>
+    <span class="bar__sub" id="updatedRel">Snow removal map last updated</span>
+  </div>
+</div>
+
+<script>
+  // ===== CONFIG: same values as the legend page =====
+  const PUBLIC_LAYER_URL = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/SnowRemovalBlocks_Public/FeatureServer/2";
+  const STORM_TABLE_URL  = "https://services5.arcgis.com/InIjTOHXxo89Sk3x/arcgis/rest/services/ActiveStorm_Public/FeatureServer/0";
+  const STORM_FIELD      = "StormActive";
+  const SCHED_FIELD      = "ScheduleFor";
+  const TIME_ZONE        = "America/Denver";
+  const FRESH_HOURS      = 24;
+  const REFRESH_MS       = 2 * 60 * 1000;
+  // ==================================================
+
+  const $ = id => document.getElementById(id);
+  let lastTs = null;
+  let schedIso = '';
+
+  function localIso(offsetDays){
+    const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+  }
+
+  async function getJson(url){
+    const sep = url.includes('?') ? '&' : '?';
+    const resp = await fetch(url + sep + '_=' + Date.now(), { cache: 'no-store' });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || 'Request failed');
+    return data;
+  }
+
+  function relativeTime(ts){
+    const mins = Math.round((Date.now() - ts) / 60000);
+    if (mins < 1)  return 'Updated just now';
+    if (mins < 60) return `Updated ${mins} minute${mins === 1 ? '' : 's'} ago`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24)  return `Updated ${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.round(hrs / 24);
+    return `Updated ${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  function stamp(ts){
+    const d = new Date(ts);
+    const day  = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', timeZone: TIME_ZONE });
+    const time = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: TIME_ZONE });
+    return `${day} · ${time} MT`;
+  }
+
+  function render(){
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(schedIso || '').trim());
+    if (m){
+      const iso = m[0];
+      const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12));
+      const label = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', timeZone:'UTC' });
+      const today = localIso(0), tomorrow = localIso(1);
+      const tag = iso === today ? ' · Today' : iso === tomorrow ? ' · Tomorrow' : '';
+      $('updatedDate').textContent = `Schedule for ${label}${tag}`;
+      $('updatedRel').textContent = lastTs ? `Last updated ${stamp(lastTs)}` : 'Snow removal schedule';
+    } else if (lastTs){
+      $('updatedDate').textContent = `Schedule updated ${stamp(lastTs)}`;
+      $('updatedRel').textContent = relativeTime(lastTs);
+    }
+    $('dot').classList.toggle('is-fresh', !!lastTs && (Date.now() - lastTs) < FRESH_HOURS * 3600000);
+  }
+
+  async function loadUpdated(){
+    try {
+      const info = await getJson(PUBLIC_LAYER_URL.replace(/\/$/, '') + '?f=json');
+      const e = info.editingInfo || {};
+      const ts = e.dataLastEditDate || e.lastEditDate;
+      if (!ts) throw new Error('No edit date');
+      lastTs = ts;
+    } catch (err){
+      console.warn('Last-updated lookup failed:', err);
+      if (!lastTs && !schedIso){
+        $('updatedDate').textContent = 'Snow removal schedule';
+        $('updatedRel').textContent = 'Tap the legend for status details';
+      }
+    }
+    render();
+  }
+
+  async function loadStorm(){
+    try {
+      const q = await getJson(STORM_TABLE_URL.replace(/\/$/, '') +
+        '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=1&f=json');
+      const feat = (q.features || [])[0];
+      if (!feat) return;
+      const key = Object.keys(feat.attributes).find(k => k.toLowerCase() === STORM_FIELD.toLowerCase());
+      const active = ['yes', 'true', '1', 'on'].includes(String(key ? feat.attributes[key] : '').trim().toLowerCase());
+      const sKey = Object.keys(feat.attributes).find(k => k.toLowerCase() === SCHED_FIELD.toLowerCase());
+      schedIso = sKey && feat.attributes[sKey] ? String(feat.attributes[sKey]) : '';
+      render();
+      $('stormBar').hidden = !active;
+      $('normalBar').hidden = active;
+    } catch (err){
+      // Leave whatever is showing if the lookup fails
+      console.warn('Storm mode lookup failed:', err);
+    }
+  }
+
+  function refreshAll(){ loadUpdated(); loadStorm(); }
+  refreshAll();
+  setInterval(refreshAll, REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAll();
+  });
+</script>
+</body>
+</html>
